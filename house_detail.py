@@ -18,7 +18,7 @@ def house_details_scraper(url):
         A tuple of (contact_type, full_url) where contact_type is either
         "agent" or "viewing". Returns None if the page can't be fetched.
     """
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
 
     if response.status_code != 200:
         print(f"Failed to retrieve {url} — status {response.status_code}")
@@ -40,10 +40,11 @@ def house_details_scraper(url):
 
         # Try to find the viewing request link
         try:
-            viewing_link = section.find(
-                "a",
-                class_="agent-summary__agent-viewing-request agent-summary__agent-viewing-request--ghost",
-            )["href"]
+            viewing_class = (
+                "agent-summary__agent-viewing-request "
+                "agent-summary__agent-viewing-request--ghost"
+            )
+            viewing_link = section.find("a", class_=viewing_class)["href"]
         except (TypeError, KeyError):
             print(f"No viewing link found for {url}")
             viewing_link = ""

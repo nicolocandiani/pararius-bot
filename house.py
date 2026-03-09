@@ -1,6 +1,9 @@
 """Data class representing a single apartment listing from Pararius."""
 
+from dataclasses import dataclass
 
+
+@dataclass
 class House:
     """Stores details about a rental listing scraped from Pararius.
 
@@ -12,12 +15,11 @@ class House:
         link: Full URL to the listing on pararius.com.
     """
 
-    def __init__(self, title, location, price, surface_area, link):
-        self.title = title
-        self.location = location
-        self.price = price
-        self.surface_area = surface_area
-        self.link = link
+    title: str
+    location: str
+    price: str
+    surface_area: str
+    link: str
 
     def to_list(self):
         """Return listing data as a list matching the DataFrame column order."""

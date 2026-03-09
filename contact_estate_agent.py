@@ -6,12 +6,28 @@ Provides two actions:
 """
 
 import time
+from dataclasses import dataclass
 from random import uniform
 
 from selenium import webdriver
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    WebDriverException,
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from fake_useragent import UserAgent
+
+
+@dataclass
+class ContactDetails:
+    """User contact information for agent forms."""
+
+    firstname: str
+    lastname: str
+    email: str
+    phone: str
+    message: str
 
 
 # -- Shared helpers -----------------------------------------------------------
@@ -28,21 +44,21 @@ def _dismiss_cookie_banner(driver):
     """Reject the OneTrust cookie popup if it appears."""
     try:
         driver.find_element(By.ID, "onetrust-reject-all-handler").click()
-    except Exception:
+    except NoSuchElementException:
         pass  # banner not present — nothing to do
 
 
-def _fill_contact_form(driver, firstname, lastname, email, phone, message):
+def _fill_contact_form(driver, contact):
     """Locate and fill the standard Pararius contact form fields.
 
     Adds small random delays between inputs to mimic human typing.
     """
     fields = {
-        "listing_contact_agent_form[first_name]": firstname,
-        "listing_contact_agent_form[last_name]": lastname,
-        "listing_contact_agent_form[email]": email,
-        "listing_contact_agent_form[phone]": phone,
-        "listing_contact_agent_form[message]": message,
+        "listing_contact_agent_form[first_name]": contact.firstname,
+        "listing_contact_agent_form[last_name]": contact.lastname,
+        "listing_contact_agent_form[email]": contact.email,
+        "listing_contact_agent_form[phone]": contact.phone,
+        "listing_contact_agent_form[message]": contact.message,
     }
 
     for field_name, value in fields.items():
@@ -58,13 +74,12 @@ def _submit_form(driver):
 
 # -- Public API ---------------------------------------------------------------
 
-def send_message_to_agent(listing_url, firstname, lastname, email, phone, message):
+def send_message_to_agent(listing_url, contact):
     """Fill and submit the agent contact form for a listing.
 
     Args:
         listing_url: Full URL to the Pararius contact-agent page.
-        firstname, lastname, email, phone: User contact details.
-        message: Body text to send to the agent.
+        contact: ContactDetails instance with user info.
 
     Returns:
         True if the form was submitted successfully, False otherwise.
@@ -75,19 +90,19 @@ def send_message_to_agent(listing_url, firstname, lastname, email, phone, messag
         time.sleep(5)
 
         _dismiss_cookie_banner(driver)
-        _fill_contact_form(driver, firstname, lastname, email, phone, message)
+        _fill_contact_form(driver, contact)
         _submit_form(driver)
 
         print("Message sent successfully!")
         return True
-    except Exception as exc:
+    except (NoSuchElementException, WebDriverException) as exc:
         print(f"Failed to send message: {exc}")
         return False
     finally:
         driver.quit()
 
 
-def set_viewing(listing_url, firstname, lastname, email, phone, message):
+def set_viewing(listing_url, contact):
     """Fill and submit the viewing request form for a listing.
 
     Same as send_message_to_agent but also selects all available
@@ -95,8 +110,7 @@ def set_viewing(listing_url, firstname, lastname, email, phone, message):
 
     Args:
         listing_url: Full URL to the Pararius viewing-request page.
-        firstname, lastname, email, phone: User contact details.
-        message: Body text to send to the agent.
+        contact: ContactDetails instance with user info.
 
     Returns:
         True if the form was submitted successfully, False otherwise.
@@ -107,7 +121,7 @@ def set_viewing(listing_url, firstname, lastname, email, phone, message):
         time.sleep(5)
 
         _dismiss_cookie_banner(driver)
-        _fill_contact_form(driver, firstname, lastname, email, phone, message)
+        _fill_contact_form(driver, contact)
 
         # Select all available day-of-week checkboxes
         checkboxes = driver.find_elements(By.CLASS_NAME, "checkbox-control__label")
@@ -119,7 +133,7 @@ def set_viewing(listing_url, firstname, lastname, email, phone, message):
 
         print("Viewing request sent successfully!")
         return True
-    except Exception as exc:
+    except (NoSuchElementException, WebDriverException) as exc:
         print(f"Failed to request viewing: {exc}")
         return False
     finally:
